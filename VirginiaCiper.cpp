@@ -3,69 +3,135 @@
 
 #include <iostream>
 #include <string>
+#include <cctype>
+#include <algorithm>
 using namespace std;
 
+//频率表 计算拟重合指数使用
+double freq_table[] = {
+8.167e-2,
+1.492e-2,
+2.782e-2,
+4.253e-2,
+12.702e-2,
+2.228e-2,
+2.015e-2,
+6.094e-2,
+6.966e-2,
+0.153e-2,
+0.772e-2,
+4.025e-2,
+2.406e-2,
+6.749e-2,
+7.507e-2,
+1.929e-2,
+0.095e-2,
+5.987e-2,
+6.327e-2,
+9.056e-2,
+2.758e-2,
+0.978e-2,
+2.360e-2,
+0.150e-2,
+1.974e-2,
+0.074e-2,
+};
+
+//重合指数计算
+double IndexCalculate(string ciper_text) {
+    transform(ciper_text.begin(), ciper_text.end(),ciper_text.begin(), toupper);//字母全部大写
+    double index=0;
+    double size = ciper_text.size();
+    long sum = 0;
+    int temp[26] = {};
+    for (int i = 0; i < size; i++)
+    {
+        temp[ciper_text[i] - 'A']++;
+    }
+    for (int i = 0; i < 26; i++)
+    {
+        sum = sum+temp[i] * (temp[i] - 1);
+    }
+
+    index = (sum) /(size*(size-1));
+    return index;
+}
+
+
+/*
+* 破解中确定密钥长度使用了弗里德曼检验
+* 相关记录https://zhuanlan.zhihu.com/p/552942664?utm_id=0
+*/
+double KeyLengthEstimate(string ciper_text) {
+    double index = IndexCalculate(ciper_text);
+    double keyLength = (0.0265 * ciper_text.size()) / ((0.065 - index) + ciper_text.size() * (index - 0.0385));
+    /*
+    *公式暂时没理解 直接拿来用的 或者通过计算分组的重合指数确定长度
+    */
+    cout << keyLength;
+    return keyLength;
+}
+
+
+//加密
 string encrypt(string m,string key) {
     string c="";
+    transform(key.begin(), key.end(), key.begin(), tolower);
     int key_length = key.size(), m_len = m.size();
     int j = 0;
     for (int i = 0; i < m_len; i++) {
         if (m[i] >= 'a' && m[i] <= 'z')
         {
             c += (m[i] - 'a' + key[j] - 'a') % 26 + 'a';
+            j = (j + 1) % key_length;
         }
         else if (m[i] >= 'A' && m[i] <= 'Z')
         {
-            c += (m[i] - 'A' + key[j] - 'A') % 26 + 'A';
+            c += (m[i] - 'A' + key[j] - 'a') % 26 + 'A';
+            j = (j + 1) % key_length;
         }
         else
         {
             c += m[i];
         }
-        j = (j+1) % key_length;
     }
     return c;
 }
+
+
+//解密
 string decrypt(string c, string key) {
     string m = "";
+    transform(key.begin(), key.end(), key.begin(), tolower);
     int key_length = key.size(), c_len = c.size();
     int j = 0;
     for (int i = 0; i < c_len; i++) {
         if (c[i] >= 'a' && c[i] <= 'z')
         {
-            m += (c[i] +26- key[j] ) % 26 + 'a';
+            m += (c[i] - 'a' + 26 - (key[j] - 'a')) % 26 + 'a';
+            j = (j + 1) % key_length;
             //c[i]-'a'+26-(key[j]-'a')
         }
         else if (c[i] >= 'A' && c[i] <= 'Z')
         {
-            m += (c[i] +26- key[j]) % 26 + 'A';
+            m += (c[i] - 'A' + 26 - (key[j] - 'a')) % 26 + 'A';
+            j = (j + 1) % key_length;
         }
         else
         {
             m += c[i];
         }
-        j = (j + 1) % key_length;
     }
     return m;
 }
+
+
 int main()
 {   
-    string m = "trump donddddd";
-    string key = "win";
-    string c = encrypt(m, key);
-    cout << c<<"\n";
-    c = "pzhix zwazlqzl";
-    m = decrypt(c, key);
-    cout << m<<"\n";
+    string ciper_text = "CQKATIYRCZXEGVXPCTEWDCBJVCIDTWFRJMUYUQVAQUIMPMGRUWYUKVZQHCLCNIZCUBTGNCGGVATLFKHLVZHJUCKDCKXQVPXPGIKCXIKGCBBMPABLRIKRKKNJCZTGTKKYHBYMTMQYOXECCLXJVIPGPOTGTKKYHBPMWTWLQBGCEMLQCZBJAXHQUMLQCPHPKHHLVIERCQEYNBAMWOARJQLGUXKCUMGRKVTACVTPFKHLHQZSTIMGQVLSEPTQVPTRQNMFGMNPQNBEJBXPGIVFEWFNQVXLVPTQQVXMTUHPGAICEQYGENNLEBBMPATLFUNQVJXBGABEPMWRQMGQWZXRJIMGVKTLEIKPAWNRVPXQGNNLEBBMPALYHMEWKVMFKAVFCXMCTEXBGAVPKJXRJMOYTQHSUTHYFAMMYPBAJIBPEZTDVKHKRWGCPBLYTMLSDRXAVMWRJMBPHCGAVQHLCVWDCJKGEIMGQVTLFBACFMLGIVHDEWGLGKMGQVLQRIVCEZTDVIIYTBYPQUMFGAIYEMLFWBMJGEAGEPAYFIFMTMHPNMLQEWGTGVMGQVTJNIRMWBVMPABQVOXLGZTJNGHDCTHLIVTPTWPRWJXAQVMYKVBLIBACVPKSUBLRTCVRWZXDWMERCVDQCVWNCGEMCLPCUPTJNMQYOQGCUCVFUBKSEBNPGABLUWFCFMMYKTTJVPHSIPTAQUIPGPXLUQOCUBNBAWYQRIVCEZTDVLXQKOGGUWNRUQWCVPXQEWICQNMFKAUMQSYMTANAJAMSFQXQTMYCTMGAGAAMWTWZGUTBGBHYPGHDVPXQGDXPCTMCZBLYXIBJCJECVGIGEIEMHEAGEPBQVPTRDGPGLSXP";
+    //string m = "Aircraft are generally built up from the basic components of wings, fuselages, tail units, and control surfaces. There are variations in particular aircraft: for example, a delta wing aircraft would not necessarily possess a horizontal tail, although this is present in a canard configuration, such as that of the Eurofighter. Each component has one or more specific functions and must be designed to ensure that it can carry out these functions safely. In this chapter, we describe the various loads to which aircraft components are subjected, their function and fabrication, and the design of connections. Spacecraft, apart from the Space Shuttle, which had a more or less conventional layout, consist generally of a long narrow tube containing the thrust structure, fuel tanks, and payload. We shall examine such structures in some detail, although a comprehensive study of spacecraft design is outside the scope of this book. For such studies, reference should be made to any of the several texts available, typical of which is that by Wijker.";
+    //string key = "city";
+    //string c = encrypt(m, key);
+    //cout << c<<"\n";
+    double temp = KeyLengthEstimate(ciper_text);
 }
-
-// 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
-// 调试程序: F5 或调试 >“开始调试”菜单
-
-// 入门使用技巧: 
-//   1. 使用解决方案资源管理器窗口添加/管理文件
-//   2. 使用团队资源管理器窗口连接到源代码管理
-//   3. 使用输出窗口查看生成输出和其他消息
-//   4. 使用错误列表窗口查看错误
-//   5. 转到“项目”>“添加新项”以创建新的代码文件，或转到“项目”>“添加现有项”以将现有代码文件添加到项目
-//   6. 将来，若要再次打开此项目，请转到“文件”>“打开”>“项目”并选择 .sln 文件
