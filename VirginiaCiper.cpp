@@ -247,5 +247,6 @@ int main()
     cout << "ciper_text:\n" << ciper_text_output << endl;
     string decrept_text_output = decrypt(ciper_text_output, key);
     cout << "decrept_text_output:\n" << decrept_text_output << endl;
+    cout << "此处使用统计方法计算密钥长度，计算结果需要上下取整后分别计算可能的密钥" << endl;
     generateKey(ciper_text);
 }
